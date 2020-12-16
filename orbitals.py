@@ -1,10 +1,11 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import cairo, Image
+import cairo
+from PIL import Image
 import numpy as np
-from numpy import sin, cos, pi, arctan2, square,sqrt, logical_not,\
-                  linspace, array, zeros
+from numpy import (sin, cos, pi, arctan2, square,sqrt, logical_not, linspace,
+        array, zeros)
 from numpy.random import random, randint, shuffle
 from time import time
 
@@ -19,7 +20,7 @@ SIZE = 10000 # size of png image
 NUM = 400 # number of nodes
 MAXFS = 6 # max friendships pr node
 
-BACK = 1. # background color 
+BACK = 1. # background color
 GRAINS = 30
 ALPHA = 0.05 # opacity of drawn points
 STEPS = 10**7
@@ -42,12 +43,13 @@ FILENAME = 'res_c_num{:d}_fs{:d}_near{:2.4f}_far{:2.4f}_pa{:2.4f}_pb{:2.4f}'\
                    FRIENDSHIP_RATIO,FRIENDSHIP_INITIATE_PROB)
 FILENAME = FILENAME + '_itt{:05d}.png'
 
+'''
 print
 print 'SIZE', SIZE
 print 'NUM', NUM
 print 'STP', STP
 print 'ONE', ONE
-print 
+print
 print 'MAXFS', MAXFS
 print 'GRAINS', GRAINS
 print 'COLOR_PATH', COLOR_PATH
@@ -55,7 +57,7 @@ print 'RAD', RAD
 print 'FRIENDSHIP_RATIO', FRIENDSHIP_RATIO
 print 'FRIENDSHIP_INITIATE_PROB', FRIENDSHIP_INITIATE_PROB
 print
-
+'''
 
 class Render(object):
 
@@ -84,8 +86,8 @@ class Render(object):
     w,h = im.size
     rgbim = im.convert('RGB')
     res = []
-    for i in xrange(0,w):
-      for j in xrange(0,h):
+    for i in range(0, w):
+      for j in range(0, h):
         r,g,b = rgbim.getpixel((i,j))
         res.append((r*scale,g*scale,b*scale))
 
@@ -96,14 +98,14 @@ class Render(object):
   def connections(self,X,Y,F,A,R):
 
     indsx,indsy = F.nonzero()
-    mask = indsx >= indsy 
+    mask = indsx >= indsy
     for i,j in zip(indsx[mask],indsy[mask]):
       a = A[i,j]
       d = R[i,j]
       scales = random(GRAINS)*d
       xp = X[i] - scales*cos(a)
       yp = Y[i] - scales*sin(a)
-     
+
       r,g,b = self.colors[ (i*NUM+j) % self.n_colors ]
       self.ctx.set_source_rgba(r,g,b,ALPHA)
 
@@ -113,7 +115,7 @@ class Render(object):
 
 def set_distances(X,Y,A,R):
 
-  for i in xrange(NUM):
+  for i in range(NUM):
 
     dx = X[i] - X
     dy = Y[i] - Y
@@ -125,7 +127,7 @@ def set_distances(X,Y,A,R):
 def make_friends(i,F,R):
 
   cand_num = F.sum(axis=1)
-  
+
   if cand_num[i]>=MAXFS:
     return
 
@@ -142,7 +144,7 @@ def make_friends(i,F,R):
   if cand_n<1:
     return
 
-  for k in xrange(cand_n):
+  for k in range(cand_n):
 
     if random()<FRIENDSHIP_RATIO:
 
@@ -162,7 +164,7 @@ def main():
   A = zeros((NUM,NUM),'float')
   F = zeros((NUM,NUM),'byte')
 
-  for i in xrange(NUM):
+  for i in range(NUM):
     the = random()*TWOPI
     x = RAD * sin(the)
     y = RAD * cos(the)
@@ -170,16 +172,16 @@ def main():
     Y[i] = 0.5+y
 
   t_cum = 0.
-  for itt in xrange(STEPS):
+  for itt in range(STEPS):
 
     set_distances(X,Y,A,R)
-    
+
     SX[:] = 0.
     SY[:] = 0.
 
     t = time()
-    
-    for i in xrange(NUM):
+
+    for i in range(NUM):
       xF = logical_not(F[i,:])
       d = R[i,:]
       a = A[i,:]
@@ -200,8 +202,7 @@ def main():
     Y += SY*STP
 
     if not (itt+1)%100:
-
-      print itt, sqrt(square(SX)+square(SY)).max()
+      print(itt, sqrt(square(SX)+square(SY)).max())
 
     if random()<FRIENDSHIP_INITIATE_PROB:
 
@@ -216,7 +217,7 @@ def main():
 
 
       fn = FILENAME.format(itt+1)
-      print fn, t_cum
+      print(fn, t_cum)
       render.sur.write_to_png(fn)
 
       t_cum = 0.
