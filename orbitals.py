@@ -16,39 +16,40 @@ COLOR_PATH = 'color/rgb.gif'
 PI = pi
 TWOPI = pi * 2.
 SIZE = 10000 # size of png image
-NUM = 400 # number of nodes
+NUMBER_OF_NODES = 400 # number of nodes
 MAXFS = 6 # max friendships pr node
 BACK = 1. # background color
 GRAINS = 30
 ALPHA = 0.05 # opacity of drawn points
 #STEPS = 10**7
 STEPS = 10**7
-ONE = 1. / SIZE
+
+PIXEL = 1. / SIZE
 
 #STP = 0.0001 # scale motion in each iteration by this
-STP = ONE/15.
-RAD = 0.20 # radius of starting circle
+STP = PIXEL/15.
+RADIUS = 0.20 # radius of starting circle
 FARL    = 0.15 # ignore "enemies" beyond this radius
 NEARL = 0.01 # do not attempt to approach friends close than this
 
-#UPDATE_NUM = 2000
-UPDATE_NUM = 1000
+#UPDATE_NUMBER_OF_NODES = 2000
+UPDATE_NUMBER_OF_NODES = 1000
 FRIENDSHIP_RATIO = 0.1 # probability of friendship dens
 FRIENDSHIP_INITIATE_PROB = 0.03 # probability of friendship initation attempt
 
 FILENAME = 'res_c_num{:d}_fs{:d}_near{:2.4f}_far{:2.4f}_pa{:2.4f}_pb{:2.4f}'\
-                     .format(NUM, MAXFS, NEARL, FARL, \
+                     .format(NUMBER_OF_NODES, MAXFS, NEARL, FARL, \
                                      FRIENDSHIP_RATIO, FRIENDSHIP_INITIATE_PROB)
 FILENAME = FILENAME + '_itt{:05d}.png'
 
 print('SIZE', SIZE)
-print('NUM', NUM)
+print('NUMBER_OF_NODES', NUMBER_OF_NODES)
 print('STP', STP)
-print('ONE', ONE)
+print('PIXEL', PIXEL)
 print('MAXFS', MAXFS)
 print('GRAINS', GRAINS)
 print('COLOR_PATH', COLOR_PATH)
-print('RAD', RAD)
+print('RADIUS', RADIUS)
 print('FRIENDSHIP_RATIO', FRIENDSHIP_RATIO)
 print('FRIENDSHIP_INITIATE_PROB', FRIENDSHIP_INITIATE_PROB)
 
@@ -56,7 +57,6 @@ class Render(object):
     def __init__(self):
         self.__init_cairo()
         self.__get_colors(COLOR_PATH)
-        self.n_colors = 1
 
     def __init_cairo(self):
         sur = cairo.ImageSurface(cairo.FORMAT_ARGB32, SIZE, SIZE)
@@ -88,8 +88,11 @@ class Render(object):
         else:
             print('Default color: black')
             self.colors = [(0, 0, 0)]
+            self.n_colors = 1
 
     def connections(self, X, Y, F, A, R):
+        """
+        """
         indsx, indsy = F.nonzero()
         mask = indsx >= indsy
 
@@ -100,16 +103,18 @@ class Render(object):
             xp = X[i] - scales * cos(a)
             yp = Y[i] - scales * sin(a)
 
-            r, g, b = self.colors[(i * NUM + j) % self.n_colors]
+            bla = (i * NUMBER_OF_NODES + j)
+            colorIndex = bla % self.n_colors
+            r, g, b = self.colors[colorIndex]
             self.ctx.set_source_rgba(r, g, b, ALPHA)
 
             for x, y in zip(xp, yp):
-                self.ctx.rectangle(x, y, ONE, ONE)
+                self.ctx.rectangle(x, y, PIXEL, PIXEL)
                 self.ctx.fill()
 
 def set_distances(X, Y, A, R):
 
-    for i in range(NUM):
+    for i in range(NUMBER_OF_NODES):
 
         dx = X[i] - X
         dy = Y[i] - Y
@@ -146,19 +151,23 @@ def make_friends(i, F, R):
             return
 
 def main():
-    X = zeros(NUM, 'float')
-    Y = zeros(NUM, 'float')
-    SX = zeros(NUM, 'float')
-    SY = zeros(NUM, 'float')
-    R = zeros((NUM, NUM), 'float')
-    A = zeros((NUM, NUM), 'float')
-    F = zeros((NUM, NUM), 'byte')
+    X = zeros(NUMBER_OF_NODES, 'float')
+    Y = zeros(NUMBER_OF_NODES, 'float')
+    SX = zeros(NUMBER_OF_NODES, 'float')
+    SY = zeros(NUMBER_OF_NODES, 'float')
+    R = zeros((NUMBER_OF_NODES, NUMBER_OF_NODES), 'float')
+    A = zeros((NUMBER_OF_NODES, NUMBER_OF_NODES), 'float')
+    F = zeros((NUMBER_OF_NODES, NUMBER_OF_NODES), 'byte')
     render = Render()
 
-    for i in range(NUM):
+    if not os.path.exists('output'):
+        os.mkdir('output')
+
+    # Initial values
+    for i in range(NUMBER_OF_NODES):
         the = random() * TWOPI
-        x = RAD * sin(the)
-        y = RAD * cos(the)
+        x = RADIUS * sin(the)
+        y = RADIUS * cos(the)
         X[i] = 0.5 + x
         Y[i] = 0.5 + y
 
@@ -166,13 +175,11 @@ def main():
 
     for itt in range(STEPS):
         set_distances(X, Y, A, R)
-
         SX[:] = 0.
         SY[:] = 0.
-
         t = time()
 
-        for i in range(NUM):
+        for i in range(NUMBER_OF_NODES):
             xF = logical_not(F[i, :])
             d = R[i, :]
             a = A[i, :]
@@ -183,26 +190,25 @@ def main():
             near[i] = False
             far[i] = False
             speed = FARL - d[far]
-
             SX[near] += cos(a[near])
             SY[near] += sin(a[near])
-            SX[far] -= speed*cos(a[far])
-            SY[far] -= speed*sin(a[far])
+            SX[far] -= speed * cos(a[far])
+            SY[far] -= speed * sin(a[far])
 
-        X += SX*STP
-        Y += SY*STP
+        X += SX * STP
+        Y += SY * STP
 
         if not (itt + 1) % 100:
             print(itt, sqrt(square(SX)+square(SY)).max())
 
         if random() < FRIENDSHIP_INITIATE_PROB:
-            k = randint(NUM)
+            k = randint(NUMBER_OF_NODES)
             make_friends(k, F, R)
 
         render.connections(X, Y, F, A, R)
         t_cum += time() - t
 
-        if not (itt + 1) % UPDATE_NUM:
+        if not (itt + 1) % UPDATE_NUMBER_OF_NODES:
             fn = FILENAME.format(itt + 1)
             print(fn, t_cum)
             path = 'output/%s' % fn
